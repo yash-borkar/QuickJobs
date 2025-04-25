@@ -25,7 +25,7 @@ API_SECRET=$(aws ssm get-parameter --name "$API_SECRET_PARAM" --with-decryption 
 SECRET_KEY=$(aws ssm get-parameter --name "$SECRET_KEY_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch SECRET_KEY"; exit 1; }
 EXPIRES_IN=$(aws ssm get-parameter --name "$EXPIRES_IN_PARAM" --query Parameter.Value --output text) || { echo "Failed to fetch EXPIRES_IN"; exit 1; }
 
-# Write .env file with sudo to ensure proper permissions
+# Write .env file (with correct permissions)
 echo "Writing .env file..."
 sudo tee "$APP_DIR/.env" > /dev/null << EOF
 MONGO_URI=${MONGO_URI}
@@ -37,29 +37,29 @@ SECRET_KEY=${SECRET_KEY}
 EXPIRES_IN=${EXPIRES_IN}
 EOF
 
-# Fix ownership of the .env file
-sudo chown ec2-user:ec2-user /var/www/quickjobs/.env
+# Fix ownership of .env file and project directory
+sudo chown -R ec2-user:ec2-user "$APP_DIR"
 
 echo ".env file created successfully."
 
-# Install dependencies if not already installed (run as ec2-user)
+# Install dependencies as ec2-user
 echo "Installing dependencies..."
 sudo -u ec2-user npm install
 
-# Start app using PM2
+# Start app using PM2 (as ec2-user)
 if ! command -v pm2 &> /dev/null; then
     echo "PM2 not found. Installing..."
     sudo -u ec2-user npm install -g pm2
 fi
 
 # Stop existing app if any
-pm2 delete "quickjobs-app" || true
+sudo -u ec2-user pm2 delete "quickjobs-app" || true
 
 # Start the app
-pm2 start "$APP_DIR/server.js" --name "quickjobs-app" --env production
+sudo -u ec2-user pm2 start "$APP_DIR/server.js" --name "quickjobs-app" --env production
 
-# Setup PM2 startup and save process list
+# Setup PM2 startup
 sudo pm2 startup systemd -u ec2-user --hp /home/ec2-user
-pm2 save
+sudo -u ec2-user pm2 save
 
 echo "QuickJobs app started successfully with PM2!"

@@ -1,25 +1,68 @@
 #!/bin/bash
 set -e
 
-echo "Installing Node.js and dependencies for QuickJobs..."
+APP_DIR="/var/www/quickjobs"
 
-# Update system packages
-sudo yum update -y
+cd $APP_DIR
 
-# Add Node.js 16.x repo and install Node.js + npm
-curl -sL https://rpm.nodesource.com/setup_16.x | sudo bash -
-sudo yum install -y nodejs
+echo "Starting QuickJobs Node application from $APP_DIR..."
+echo "Fetching environment variables from AWS Parameter Store..."
 
-# Create QuickJobs app directory (ensure ec2-user has write access)
-sudo mkdir -p /var/www/quickjobs
-sudo chown -R ec2-user:ec2-user /var/www/quickjobs
+# Define SSM parameter names
+MONGO_URI_PARAM="/quickjobs/prod/mongo-uri"
+PORT_PARAM="/quickjobs/prod/port"
+CLOUD_NAME_PARAM="/quickjobs/prod/cloud-name"
+API_KEY_PARAM="/quickjobs/prod/cloud-api-key"
+API_SECRET_PARAM="/quickjobs/prod/cloud-api-secret"
+SECRET_KEY_PARAM="/quickjobs/prod/secret-key"
+EXPIRES_IN_PARAM="/quickjobs/prod/expiration"
 
-# Install PM2 globally (for managing the Node.js app)
-sudo npm install -g pm2
+# Fetch values from Parameter Store
+MONGO_URI=$(aws ssm get-parameter --name "$MONGO_URI_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch MongoDB URI"; exit 1; }
+PORT=$(aws ssm get-parameter --name "$PORT_PARAM" --query Parameter.Value --output text) || { echo "Failed to fetch PORT"; exit 1; }
+CLOUD_NAME=$(aws ssm get-parameter --name "$CLOUD_NAME_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch CLOUD_NAME"; exit 1; }
+API_KEY=$(aws ssm get-parameter --name "$API_KEY_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch API_KEY"; exit 1; }
+API_SECRET=$(aws ssm get-parameter --name "$API_SECRET_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch API_SECRET"; exit 1; }
+SECRET_KEY=$(aws ssm get-parameter --name "$SECRET_KEY_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch SECRET_KEY"; exit 1; }
+EXPIRES_IN=$(aws ssm get-parameter --name "$EXPIRES_IN_PARAM" --query Parameter.Value --output text) || { echo "Failed to fetch EXPIRES_IN"; exit 1; }
 
-# Confirm installed versions
-echo "Node.js version: $(node -v)"
-echo "npm version: $(npm -v)"
-echo "PM2 version: $(pm2 -v)"
+# Write .env file with sudo to ensure proper permissions
+echo "Writing .env file..."
+sudo tee "$APP_DIR/.env" > /dev/null << EOF
+MONGO_URI=${MONGO_URI}
+PORT=${PORT}
+CLOUD_NAME=${CLOUD_NAME}
+API_KEY=${API_KEY}
+API_SECRET=${API_SECRET}
+SECRET_KEY=${SECRET_KEY}
+EXPIRES_IN=${EXPIRES_IN}
+EOF
 
-echo "Environment setup completed successfully for QuickJobs."
+echo ".env file created successfully."
+
+# Install dependencies if not already installed (no sudo required due to chown)
+echo "Installing dependencies..."
+npm install
+
+# Start app using PM2
+if ! command -v pm2 &> /dev/null; then
+    echo "PM2 not found. Installing..."
+    sudo npm install -g pm2
+fi
+
+if ! command -v node &> /dev/null; then
+    echo "Node.js not found. Please install it first."
+    exit 1
+fi
+
+# Stop existing app if any
+pm2 delete "quickjobs-app" || true
+
+# Start the app
+pm2 start "$APP_DIR/server.js" --name "quickjobs-app" --env production
+
+# Setup PM2 startup and save process list
+sudo pm2 startup systemd -u ec2-user --hp /home/ec2-user
+pm2 save
+
+echo "QuickJobs app started successfully with PM2!"

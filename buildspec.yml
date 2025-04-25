@@ -17,7 +17,7 @@ phases:
       - cd ../frontend
       - npm run build
       - echo Copying build to backend public directory...
-      - cp -r build ../backend/public
+      - cp -r dist ../backend/public
   post_build:
     commands:
       - echo Preparing artifacts...

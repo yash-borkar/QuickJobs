@@ -10,10 +10,11 @@ sudo yum update -y
 curl -sL https://rpm.nodesource.com/setup_16.x | sudo bash -
 sudo yum install -y nodejs
 
-# Create QuickJobs app directory
+# Create QuickJobs app directory (ensure ec2-user has write access)
 sudo mkdir -p /var/www/quickjobs
+sudo chown -R ec2-user:ec2-user /var/www/quickjobs
 
-# Install PM2 globally
+# Install PM2 globally (for managing the Node.js app)
 sudo npm install -g pm2
 
 # Confirm installed versions

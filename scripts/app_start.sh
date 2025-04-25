@@ -2,7 +2,6 @@
 set -e
 
 APP_DIR="/var/www/quickjobs"
-
 cd $APP_DIR
 
 echo "Starting QuickJobs Node application from $APP_DIR..."
@@ -26,7 +25,7 @@ API_SECRET=$(aws ssm get-parameter --name "$API_SECRET_PARAM" --with-decryption 
 SECRET_KEY=$(aws ssm get-parameter --name "$SECRET_KEY_PARAM" --with-decryption --query Parameter.Value --output text) || { echo "Failed to fetch SECRET_KEY"; exit 1; }
 EXPIRES_IN=$(aws ssm get-parameter --name "$EXPIRES_IN_PARAM" --query Parameter.Value --output text) || { echo "Failed to fetch EXPIRES_IN"; exit 1; }
 
-# Write .env file with sudo
+# Write .env file with sudo to ensure proper permissions
 echo "Writing .env file..."
 sudo tee "$APP_DIR/.env" > /dev/null << EOF
 MONGO_URI=${MONGO_URI}
@@ -38,21 +37,19 @@ SECRET_KEY=${SECRET_KEY}
 EXPIRES_IN=${EXPIRES_IN}
 EOF
 
+# Fix ownership of the .env file
+sudo chown ec2-user:ec2-user /var/www/quickjobs/.env
+
 echo ".env file created successfully."
 
-# Install dependencies if not already installed
+# Install dependencies if not already installed (run as ec2-user)
 echo "Installing dependencies..."
-npm install
+sudo -u ec2-user npm install
 
 # Start app using PM2
 if ! command -v pm2 &> /dev/null; then
     echo "PM2 not found. Installing..."
-    sudo npm install -g pm2
-fi
-
-if ! command -v node &> /dev/null; then
-    echo "Node.js not found. Please install it first."
-    exit 1
+    sudo -u ec2-user npm install -g pm2
 fi
 
 # Stop existing app if any

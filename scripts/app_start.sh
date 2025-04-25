@@ -56,7 +56,7 @@ fi
 sudo -u ec2-user pm2 delete "quickjobs-app" || true
 
 # Start the app
-sudo -u ec2-user pm2 start "$APP_DIR/server.js" --name "quickjobs-app" --env production
+sudo -u ec2-user pm2 start "$APP_DIR/index.js" --name "quickjobs-app" --env production
 
 # Setup PM2 startup
 sudo pm2 startup systemd -u ec2-user --hp /home/ec2-user

@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 16
+    commands:
+      - echo Installing frontend dependencies...
+      - cd frontend
+      - npm install
+      - echo Installing backend dependencies...
+      - cd ../backend
+      - npm install
+  build:
+    commands:
+      - echo Building frontend...
+      - cd ../frontend
+      - npm run build
+      - echo Copying build to backend public directory...
+      - cp -r build ../backend/public
+  post_build:
+    commands:
+      - echo Preparing artifacts...
+      - cd ../backend
+      - mkdir -p scripts
+      - cp ../scripts/* scripts/
+      - cp ../appspec.yml .
+artifacts:
+  files:
+    - '**/*'
+  base-directory: backend

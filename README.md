@@ -58,12 +58,12 @@ QuickJobs is a job-finding platform designed to streamline the hiring process fo
 1. Start the backend server:
    ```bash
    cd backend
-   npm start
+   npm run dev
    ```
 2. Start the frontend server:
    ```bash
    cd frontend
-   npm start
+   npm run dev
    ```
 
 ## Contribution

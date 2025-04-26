@@ -3,29 +3,26 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 16
+      nodejs: 18
     commands:
-      - echo Installing frontend dependencies...
-      - cd frontend
-      - npm install
-      - echo Installing backend dependencies...
-      - cd ../backend
-      - npm install
+      - echo Installing frontend and backend dependencies...
+      - cd frontend && npm install
+      - cd ../backend && npm install
   build:
     commands:
-      - echo Building frontend...
-      - cd ../frontend
-      - npm run build
-      - echo Copying build to backend public directory...
-      - cp -r dist ../backend/public
+      - echo Building React frontend...
+      - cd ../frontend && npm run build
+      - echo Moving frontend build to backend/public...
+      - rm -rf ../backend/public
+      - cp -r build ../backend/public
   post_build:
     commands:
-      - echo Preparing artifacts...
+      - echo Preparing deployment artifact...
       - cd ../backend
       - mkdir -p scripts
-      - cp ../scripts/* scripts/
-      - cp ../appspec.yml .
+      - cp -r ../scripts ./scripts
 artifacts:
   files:
     - '**/*'
   base-directory: backend
+  discard-paths: no

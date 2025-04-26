@@ -3,25 +3,27 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 18
+      nodejs: 16
     commands:
-      - echo "Installing backend dependencies..."
-      - cd backend && npm install
-      - cd ..
-      - echo "Installing frontend dependencies..."
+      - echo Installing dependencies...
+      # Install frontend dependencies
       - cd frontend && npm install
+      # Install backend dependencies
+      - cd ../backend && npm install
+
   build:
     commands:
-      - echo "Building React frontend..."
-      - npm run build --prefix frontend
-      - echo "Copying build files to backend/public..."
-      - rm -rf backend/public
-      - mkdir -p backend/public
-      - cp -r frontend/dist/* backend/public/
-      - echo "Frontend build copied successfully."
+      - echo Building the React app...
+      # Build React app
+      - cd frontend && npm run build
+      # Copy the React build to the backend folder
+      - cp -R frontend/build ../backend/public
+
+  post_build:
+    commands:
+      - echo Build completed successfully!
+      - zip -r quickjobs-app.zip .
+      
 artifacts:
   files:
-    - backend/**/*  # Includes server, routes, utils, public (built frontend)
-    - appspec.yml
-    - scripts/**/*
-  discard-paths: no
+    - quickjobs-app.zip

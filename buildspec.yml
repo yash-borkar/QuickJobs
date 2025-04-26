@@ -5,24 +5,23 @@ phases:
     runtime-versions:
       nodejs: 18
     commands:
-      - echo Installing frontend and backend dependencies...
+      - echo "Installing backend dependencies..."
+      - cd backend && npm install
+      - cd ..
+      - echo "Installing frontend dependencies..."
       - cd frontend && npm install
-      - cd ../backend && npm install
   build:
     commands:
-      - echo Building React frontend...
-      - cd ../frontend && npm run build
-      - echo Moving frontend build to backend/public...
-      - rm -rf ../backend/public
-      - cp -r build ../backend/public
-  post_build:
-    commands:
-      - echo Preparing deployment artifact...
-      - cd ../backend
-      - mkdir -p scripts
-      - cp -r ../scripts ./scripts
+      - echo "Building React frontend..."
+      - npm run build --prefix frontend
+      - echo "Copying build files to backend/public..."
+      - rm -rf backend/public
+      - mkdir -p backend/public
+      - cp -r frontend/dist/* backend/public/
+      - echo "Frontend build copied successfully."
 artifacts:
   files:
-    - '**/*'
-  base-directory: backend
+    - backend/**/*  # Includes server, routes, utils, public (built frontend)
+    - appspec.yml
+    - scripts/**/*
   discard-paths: no

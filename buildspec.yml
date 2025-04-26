@@ -6,24 +6,21 @@ phases:
       nodejs: 16
     commands:
       - echo Installing dependencies...
-      # Install frontend dependencies
       - cd frontend && npm install
-      # Install backend dependencies
-      - cd ../backend && npm install
+      - cd backend && npm install
 
   build:
     commands:
       - echo Building the React app...
-      # Build React app
-      - cd frontend && npm run build
-      # Copy the React build to the backend folder
-      - cp -R frontend/build ../backend/public
+      - cd frontend && npm run build  # Generates the dist folder
+      - cp -R frontend/dist/* backend/public/  # Copy built files to backend public folder
+      - echo "React build copied to backend public directory"
 
   post_build:
     commands:
       - echo Build completed successfully!
       - zip -r quickjobs-app.zip .
-      
+
 artifacts:
   files:
     - quickjobs-app.zip

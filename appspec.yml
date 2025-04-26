@@ -2,7 +2,8 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /var/www/quickjobs
+    destination: /home/ec2-user/quickjobs
+
 hooks:
   BeforeInstall:
     - location: scripts/before_install.sh
